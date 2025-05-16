@@ -28,11 +28,13 @@ jobs:
         pip install requests
         python3 scripts/summarize.py "${{ steps.extract.outputs.youtube_url }}"
 
-    - name: Commit and push updated README
+    - name: Commit and push updated README using PAT
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
       run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
-        git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}
+        git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
         git add README.md
         git commit -m "📝 Add summary for ${{ steps.extract.outputs.youtube_url }}" || echo "No changes to commit"
-        git push
+        git push origin HEAD:main
