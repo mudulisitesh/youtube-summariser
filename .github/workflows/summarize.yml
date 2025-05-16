@@ -1,0 +1,39 @@
+name: Summarize YouTube News
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  summarize:
+    if: contains(github.event.issue.title, 'YouTube')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Extract YouTube link from issue body
+      id: extract
+      run: |
+        echo "${{ github.event.issue.body }}" > body.txt
+        URL=$(grep -Eo 'https://www\.youtube\.com/watch\?v=[^ ]+' body.txt | head -n1)
+        echo "youtube_url=$URL" >> $GITHUB_OUTPUT
+
+    - name: Run summarizer script
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+        sudo apt update && sudo apt install -y python3 python3-pip
+        pip install requests
+        python3 scripts/summarize.py "${{ steps.extract.outputs.youtube_url }}"
+
+    - name: Commit and push updated README
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add README.md
+        git commit -m "📝 Add summary for ${{ steps.extract.outputs.youtube_url }}"
+        git push
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
